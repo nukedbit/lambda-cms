@@ -1,6 +1,7 @@
 ﻿namespace Lambda.Cms
 open System
 open System.Text
+open System.Text.RegularExpressions
 
 module Domain =
 
@@ -8,7 +9,11 @@ module Domain =
         type Email = Email of string
 
         let create s = 
-            Result.Ok (Email s)
+            let r = Regex(@"\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*")
+            if r.IsMatch(s) then
+                Result.Ok (Email s)
+            else 
+                Result.Error "Invalid email address"
 
     module CategoryIdType = 
         type CategoryId = CategoryId of Guid
@@ -60,8 +65,6 @@ module Domain =
                      | true -> Some v
                      | _ -> None
                     )
-        let fromSlug s = 
-            Result.Ok (Slug s)
         let fromTitle s =
             if String.IsNullOrEmpty(s) then
                     Result.Error "Title can't be null or empty"
@@ -91,6 +94,8 @@ module Domain =
                        Result.Ok (Slug(sb.ToString().Substring(0, sb.Length - 1)))
                     else 
                         Result.Ok (Slug(sb.ToString()))
+        let fromSlug s = 
+            fromTitle s
 
 
     type Version = Version of int
