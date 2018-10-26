@@ -1,0 +1,4 @@
+source https://www.nuget.org/api/v2
+
+framework: netcoreapp2.1, netstandard2.0
+
