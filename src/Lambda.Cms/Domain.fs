@@ -34,6 +34,18 @@ module Domain =
         type MediaId = MediaId of Guid
         let create g = 
             MediaId g
+
+    module TitleType =
+        type Title = Title of string
+        let create s =
+            let maxLength = 60
+            if String.IsNullOrEmpty(s) then
+                Result.Error "Title can't be null or empty"
+            else if s.Length >= maxLength then
+                Result.Error (sprintf "Length should be less than %d." maxLength)
+            else
+                Result.Ok (Title s)
+
     
     module SlugType = 
         type Slug = Slug of string
@@ -123,7 +135,7 @@ module Domain =
     type Category = 
         {
             Id: CategoryIdType.CategoryId
-            Title : string
+            Title : TitleType.Title
             Slug : SlugType.Slug
             ParentId : CategoryIdType.CategoryId option
         }
@@ -131,7 +143,7 @@ module Domain =
     type Document = 
         {
             Id: DocumentIdType.DocumentId
-            Title : string
+            Title : TitleType.Title
             Content : string
             Category : Category
             Version : Version
