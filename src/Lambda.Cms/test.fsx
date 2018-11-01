@@ -4,7 +4,7 @@ open Lambda.Cms.Domain
 open System
 
 
-EmailType.create ("hello@world.com")
+Email.create ("hello@world.com")
 
 EmailType.create ("hello@world-.com")
 

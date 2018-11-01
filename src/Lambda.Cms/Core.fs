@@ -1,18 +1,32 @@
 namespace Lambda.Cms 
 
-module Core =
-    open Domain
-
-    type Filter =
-        | CategoryFilter of SlugType.Slug
-        | IncludeStatus of DocumentStatus
-        | ExcludeStatus of DocumentStatus
-
-    type Page = 
-        { 
-            Index : int
-            Size : int
-        }
-
-    type DbGetDocumentsAsync = (Page * list<Filter>) -> Async<Document list>
-    type DbGetDocumentAsync = SlugType.Slug -> Async<Document>
+//module Core =
+//    open Microsoft.Azure
+//    open Microsoft.WindowsAzure.Storage
+//    
+//    type Filter =
+//        | CategoryFilter of Slug
+//        | IncludeDraft
+//
+//    type Page = 
+//        { 
+//            Index : int
+//            Size : int
+//        }
+//
+//    type DbGetDocumentsAsync = (Page * list<Filter>) -> Async<Document list>
+//    type DbGetDocumentAsync = Slug -> Async<Document>  
+//    
+//    
+//    let getSetting (name:string) =
+//        name
+//
+//
+//    let createContainerAsync containerName = async {
+//            let connectionString = getSetting "AzureStorageAccount"
+//            let storageAccount = CloudStorageAccount.Parse(connectionString)
+//            let blobClient = storageAccount.CreateCloudBlobClient()
+//            let container = blobClient.GetContainerReference(containerName)
+//            let! _ = container.CreateIfNotExistsAsync() |> Async.AwaitTask 
+//            return container
+//        }

@@ -5,11 +5,25 @@
     <RootNamespace>Lambda.Cms</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+
     <Compile Include="Ioc.fs" />
-    <Compile Include="Domain.fs" />
+
     <Compile Include="Core.fs" />
+
+    <Compile Include="RResult.fs" />
+
+    <Compile Include="Chessie.fs" />
+
+    <Compile Include="Domain.Common.fs" />
+    <Compile Include="Domain.fs" />
+
+    <Compile Include="Storage.fs" />
+    <Compile Include="Domain.Impl.fs" />
+    
+    <Compile Include="Commands.fs" />
     <Compile Include="Dto.fs" />
-    <Compile Include="Services.fs" />
+      <Compile Include="Services.fs" />
+      
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

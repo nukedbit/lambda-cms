@@ -1,4 +1,6 @@
 source https://www.nuget.org/api/v2
 
-framework: netcoreapp2.1, netstandard2.0
-
+framework: netcoreapp2.1, netstandard2.0, netstandard1.3
+nuget SQLProvider 1.1.52
+nuget WindowsAzure.Storage 9.3.2
+nuget Microsoft.WindowsAzure.ConfigurationManager 3.2.3
