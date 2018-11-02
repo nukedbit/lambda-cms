@@ -1,11 +1,12 @@
 namespace Lambda.Cms
+
 open Chessie
 
 type StorageCurrentChangeSet = unit -> AsyncResult<ChangeSet, RBad>
 
 type StorageLastPublishedChangeSet = unit -> AsyncResult<PublishedChangeSet, RBad>
 
-type StoreChangeSet = ChangeSet -> AsyncResult<unit, RBad>
+type StoreChangeSet = ChangeSet -> AsyncResult<ChangeSet, RBad>
 
 type StorageGetDraftChangeSetContent = DraftChangeSet -> AsyncResult<DraftChangeSetContent, RBad>
 

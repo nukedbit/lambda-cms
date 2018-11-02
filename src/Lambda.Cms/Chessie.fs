@@ -3,7 +3,7 @@ namespace Lambda.Cms
 open System
 
 [<AutoOpen>]
-module rec Chessie =
+module public rec Chessie =
 
     [<RequireQualifiedAccess>]
     type RBad =
@@ -251,7 +251,7 @@ module rec Chessie =
             /// Creates an async computation from an asyncTrial computation
             let ofAsyncResult (AR x) = x
             
-            let toAsyncResult (r) = 
+            let inline toAsyncResult (r) = 
                 let e = Async.singleton (r)
                 (AsyncResult.AR e)
     

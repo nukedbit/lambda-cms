@@ -6,6 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
 
+      <Compile Include="Info.fs"/>
+
       <Compile Include="Chessie.fs"/>
 
       <Compile Include="Ioc.fs" />

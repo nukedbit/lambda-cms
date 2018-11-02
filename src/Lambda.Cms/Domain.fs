@@ -7,13 +7,13 @@ type ChangeSetId = ChangeSetId of Guid
 
 type DraftChangeSet = {
     Id : ChangeSetId
-    Parent: ChangeSetId
+    Parent: ChangeSetId option
     CreatedOn: DateTime
 }
 
 type PublishedChangeSet = {
     Id : ChangeSetId
-    Parent: ChangeSetId
+    Parent: ChangeSetId option
     CreatedOn: DateTime
     PublishedOn: DateTime
 }

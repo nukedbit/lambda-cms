@@ -3,28 +3,30 @@ namespace Lambda.Cms
 open System
 open Chessie
 
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module DraftChangeSet = 
     let create (published:PublishedChangeSet) =
         {
             Id = ChangeSetId (Guid.NewGuid())
-            Parent = published.Id
+            Parent = Some published.Id
             CreatedOn = DateTime.UtcNow
         }
         
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]        
 module PublishedChangeSet = 
     let create (published:DraftChangeSet) =
         {
             Id = ChangeSetId (Guid.NewGuid())
-            Parent = published.Id
+            Parent = Some published.Id
             CreatedOn = published.CreatedOn
             PublishedOn = DateTime.UtcNow
         }  
         
          
-
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ChangeSet =      
     open Chessie
-    let _createNewChangeSet 
+    let internal _createNewChangeSet 
         (getCurrentChangeSet : StorageCurrentChangeSet)      
         (storeChangeSet : StoreChangeSet)   
         =
@@ -36,12 +38,14 @@ module ChangeSet =
             | ChangeSet.Published p ->
                 return! asyncTrial {
                     let set = ChangeSet.Draft (DraftChangeSet.create p)
-                    do! storeChangeSet set
-                    return set
+                    return! storeChangeSet set
                 }
         } 
     
-    let createNewChangeSet = _createNewChangeSet (Ioc.resolve<StorageCurrentChangeSet>())  
+    let createNewChangeSet = 
+        _createNewChangeSet 
+            (Ioc.resolve<StorageCurrentChangeSet>())  
+            (Ioc.resolve<StoreChangeSet>())  
     
     
     let private draftToPublishedChangeSetContent publishToChangeset (content:DraftChangeSetContent) =
@@ -122,7 +126,7 @@ module ChangeSet =
             (Ioc.resolve<StorageGetDraftChangeSetContent>())
             (Ioc.resolve<StoragePublishChangeSetContent>())
             
-            
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]            
 module Document = 
    let _create (store: StorageStoreDraftDocument) (changeSet: DraftChangeSet) owner =
         {

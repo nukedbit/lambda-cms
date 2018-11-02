@@ -62,9 +62,8 @@ module CommandManager =
         (update:UpdateTitle)
         =
         asyncTrial {
-            let! draft = getDraft update.DocumentId                 
-            {draft with Title = update.Title}
-            return! storeDraft draft            
+            let! draft = getDraft update.DocumentId                             
+            return! storeDraft {draft with Title = update.Title}            
         }             
        
     let updateTitleCommand =
@@ -79,9 +78,8 @@ module CommandManager =
         (e:UpdateContent)
         =
         asyncTrial {
-            let! draft = getDraft e.DocumentId
-            {draft with Content = e.Content}
-            return! storeDraft draft           
+            let! draft = getDraft e.DocumentId            
+            return! storeDraft {draft with Content = e.Content}           
         } 
         
 
@@ -99,9 +97,8 @@ module CommandManager =
         =
         asyncTrial {
             let! draft = getDraft e.DocumentId
-            let! category = getCategory e.Category (ChangeSet.Draft draft.ChangeSet)
-            {draft with Category = (Some category)}
-            return! storeDraft draft           
+            let! category = getCategory e.Category (ChangeSet.Draft draft.ChangeSet)            
+            return! storeDraft {draft with Category = (Some category)}           
         }                                             
         
     let updateCategoryCommand = 

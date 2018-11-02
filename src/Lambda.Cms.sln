@@ -7,6 +7,8 @@ ProjectSection(SolutionItems) = preProject
 	sql\db.sql = sql\db.sql
 EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Lambda.Cms.Tests", "Lambda.Cms.Tests\Lambda.Cms.Tests.fsproj", "{931CA02A-008A-4BFB-B95C-F687E566A42A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,5 +19,9 @@ Global
 		{8AF5B43D-BCDE-4A1A-B6DD-04C1AA6484C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8AF5B43D-BCDE-4A1A-B6DD-04C1AA6484C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8AF5B43D-BCDE-4A1A-B6DD-04C1AA6484C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{931CA02A-008A-4BFB-B95C-F687E566A42A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{931CA02A-008A-4BFB-B95C-F687E566A42A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{931CA02A-008A-4BFB-B95C-F687E566A42A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{931CA02A-008A-4BFB-B95C-F687E566A42A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
