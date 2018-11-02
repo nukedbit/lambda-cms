@@ -3,16 +3,18 @@ open System
 open System.Text.RegularExpressions
 open System.Text
 
+
 type Email = private Email of string
 
 module internal Email = 
+    open Chessie
     
     let create s = 
         let r = Regex(@"\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*")
         if r.IsMatch(s) then
-            Result.Ok (Email s)
+            Result<Email,string>.Ok (Email s)
         else 
-            Result.Error "Invalid email address"
+            Result<Email, string>.Error ("Invalid email address")
 
 type CategoryId = CategoryId of Guid
 
@@ -33,7 +35,7 @@ module Title =
         else if s.Length >= maxLength then
             Result.Error (sprintf "Length should be less than %d." maxLength)
         else
-            Result.Ok (Title s)
+            Result<Title,string>.Ok (Title s)
 
 type Slug = Slug of string
 
@@ -93,9 +95,9 @@ module Slug =
                         if (prevlen <> sb.Length) then prevdash <- false
                     pos <- pos + 1
                 if (prevdash) then 
-                   Result.Ok (Slug(sb.ToString().Substring(0, sb.Length - 1)))
+                   Result<Slug,string>.Ok (Slug(sb.ToString().Substring(0, sb.Length - 1)))
                 else 
-                    Result.Ok (Slug(sb.ToString()))
+                    Result<Slug,string>.Ok (Slug(sb.ToString()))
     let fromSlug s = 
         fromTitle s
 

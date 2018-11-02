@@ -1,6 +1,8 @@
 namespace Lambda.Cms
 
 open System
+
+[<AutoOpen>]
 module rec Chessie =
 
     [<RequireQualifiedAccess>]
@@ -10,58 +12,57 @@ module rec Chessie =
         | Object          of obj
         | DescribedObject of string*obj
         
-    /// Represents the result of a computation.
-    type Result<'TSuccess> = 
-        /// Represents the result of a successful computation.
-        | Ok of 'TSuccess * RBad list
+    type Result<'TSuccess, 'TMessage> = 
+    /// Represents the result of a successful computation.
+        | Ok of 'TSuccess * 'TMessage list
         /// Represents the result of a failed computation.
-        | Bad of RBad list
+        | Bad of 'TMessage list
     
         /// Creates a Failure result with the given messages.
-        static member FailWith(messages:RBad seq) : Result<'TSuccess> = Chessie.Result<'TSuccess>.Bad(messages |> Seq.toList)
+        static member FailWith(messages:'TMessage seq) : Result<'TSuccess, 'TMessage> = Chessie.Result<'TSuccess, 'TMessage>.Bad(messages |> Seq.toList)
     
         /// Creates a Failure result with the given message.
-        static member FailWith(message:RBad) : Result<'TSuccess> = Chessie.Result<'TSuccess>.Bad([message])
+        static member FailWith(message:'TMessage) : Result<'TSuccess, 'TMessage> = Chessie.Result<'TSuccess, 'TMessage>.Bad([message])
         
         /// Creates a Success result with the given value.
-        static member Succeed(value:'TSuccess) : Result<'TSuccess> = Chessie.Result<'TSuccess>.Ok(value,[])
+        static member Succeed(value:'TSuccess) : Result<'TSuccess, 'TMessage> = Chessie.Result<'TSuccess, 'TMessage>.Ok(value,[])
     
         /// Creates a Success result with the given value and the given message.
-        static member Succeed(value:'TSuccess,message:RBad) : Result<'TSuccess> = Chessie.Result<'TSuccess>.Ok(value,[message])
+        static member Succeed(value:'TSuccess,message:'TMessage) : Result<'TSuccess, 'TMessage> = Chessie.Result<'TSuccess, 'TMessage>.Ok(value,[message])
     
         /// Creates a Success result with the given value and the given message.
-        static member Succeed(value:'TSuccess,messages:RBad seq) : Result<'TSuccess> = Chessie.Result<'TSuccess>.Ok(value,messages |> Seq.toList)
+        static member Succeed(value:'TSuccess,messages:'TMessage seq) : Result<'TSuccess, 'TMessage> = Chessie.Result<'TSuccess, 'TMessage>.Ok(value,messages |> Seq.toList)
     
         /// Executes the given function on a given success or captures the failure
-        static member Try(func: Func<_>) : Result<'TSuccess> =        
+        static member Try(func: Func<_>) : Result<'TSuccess,exn> =        
             try
                 Ok(func.Invoke(),[])
             with
-            | exn -> Bad[(RBad.Exception exn)]
+            | exn -> Bad[exn]
     
         /// Converts the result into a string.
         override this.ToString() =
             match this with
             | Ok(v,msgs) -> sprintf "OK: %A - %s" v (String.Join(Environment.NewLine, msgs |> Seq.map (fun x -> x.ToString())))
             | Bad(msgs) -> sprintf "Error: %s" (String.Join(Environment.NewLine, msgs |> Seq.map (fun x -> x.ToString())))    
-    
-    /// Basic combinators and operators for error handling.
+
+/// Basic combinators and operators for error handling.
     [<AutoOpen>]
     module Trial =  
         /// Wraps a value in a Success
-        let inline ok<'TSuccess> (x:'TSuccess) : Result<'TSuccess> = Ok(x, [])
+        let inline ok<'TSuccess,'TMessage> (x:'TSuccess) : Result<'TSuccess,'TMessage> = Ok(x, [])
     
         /// Wraps a value in a Success
-        let inline pass<'TSuccess,'TMessage> (x:'TSuccess) : Result<'TSuccess> = Ok(x, [])
+        let inline pass<'TSuccess,'TMessage> (x:'TSuccess) : Result<'TSuccess,'TMessage> = Ok(x, [])
     
         /// Wraps a value in a Success and adds a message
-        let inline warn<'TSuccess> (msg:RBad) (x:'TSuccess) : Result<'TSuccess> = Ok(x,[msg])
+        let inline warn<'TSuccess,'TMessage> (msg:'TMessage) (x:'TSuccess) : Result<'TSuccess,'TMessage> = Ok(x,[msg])
     
         /// Wraps a message in a Failure
-        let inline fail<'TSuccess> (msg:RBad) : Result<'TSuccess> = Bad([ msg ])
+        let inline fail<'TSuccess,'Message> (msg:'Message) : Result<'TSuccess,'Message> = Bad([ msg ])
     
         /// Executes the given function on a given success or captures the exception in a failure
-        let inline Catch f x = Chessie.Result<_>.Try(fun () -> f x)
+        let inline Catch f x = Chessie.Result<_,_>.Try(fun () -> f x)
     
         /// Returns true if the result was not successful.
         let inline failed result = 
@@ -99,7 +100,7 @@ module rec Chessie =
             either fSuccess fFailure result
     
        /// Flattens a nested result given the Failure types are equal
-        let inline flatten (result : Result<Result<_>>) =
+        let inline flatten (result : Result<Result<_,_>,_>) =
             result |> bind id
     
         /// If the result is a Success it executes the given function on the value. 
@@ -228,8 +229,8 @@ module rec Chessie =
     
     /// Represents the result of an async computation
     [<NoComparison;NoEquality>]
-    type AsyncResult<'a> = 
-        | AR of Async<Result<'a>>
+    type AsyncResult<'a, 'b> = 
+        | AR of Async<Result<'a, 'b>>
     
     /// Useful functions for combining error handling computations with async computations.
     [<AutoOpen>]
@@ -250,8 +251,8 @@ module rec Chessie =
             /// Creates an async computation from an asyncTrial computation
             let ofAsyncResult (AR x) = x
             
-            let failWithAsync<'T> (msg:RBad) = 
-                let e = Async.singleton (Result<'T>.FailWith (msg))
+            let toAsyncResult (r) = 
+                let e = Async.singleton (r)
                 (AsyncResult.AR e)
     
     /// Basic support for async error handling computation
@@ -259,18 +260,18 @@ module rec Chessie =
     module AsyncTrial = 
         /// Builder type for error handling in async computation expressions.
         type AsyncTrialBuilder() = 
-            member __.Return value : AsyncResult<'a> = 
+            member __.Return value : AsyncResult<'a, 'b> = 
                 value
                 |> ok
                 |> Async.singleton
                 |> AR
             
-            member __.ReturnFrom(asyncResult : AsyncResult<'a>) = asyncResult
-            member this.Zero() : AsyncResult<unit> = this.Return()
-            member __.Delay(generator : unit -> AsyncResult<'a>) : AsyncResult<'a> = 
+            member __.ReturnFrom(asyncResult : AsyncResult<'a, 'b>) = asyncResult
+            member this.Zero() : AsyncResult<unit, 'b> = this.Return()
+            member __.Delay(generator : unit -> AsyncResult<'a, 'b>) : AsyncResult<'a, 'b> = 
                 async.Delay(generator >> Async.ofAsyncResult) |> AR
             
-            member __.Bind(asyncResult : AsyncResult<'a>, binder : 'a -> AsyncResult<'b>) : AsyncResult<'b> = 
+            member __.Bind(asyncResult : AsyncResult<'a, 'c>, binder : 'a -> AsyncResult<'b, 'c>) : AsyncResult<'b, 'c> = 
                 let fSuccess (value, msgs) = 
                     value |> (binder
                               >> Async.ofAsyncResult
@@ -286,22 +287,22 @@ module rec Chessie =
                 |> Async.bind (either fSuccess fFailure)
                 |> AR
             
-            member this.Bind(result : Result<'a>, binder : 'a -> AsyncResult<'b>) : AsyncResult<'b> = 
+            member this.Bind(result : Result<'a, 'c>, binder : 'a -> AsyncResult<'b, 'c>) : AsyncResult<'b, 'c> = 
                 this.Bind(result
                           |> Async.singleton
                           |> AR, binder)
             
-            member __.Bind(async : Async<'a>, binder : 'a -> AsyncResult<'b>) : AsyncResult<'b> = 
+            member __.Bind(async : Async<'a>, binder : 'a -> AsyncResult<'b, 'c>) : AsyncResult<'b, 'c> = 
                 async
                 |> Async.bind (binder >> Async.ofAsyncResult)
                 |> AR
             
-            member __.TryWith(asyncResult : AsyncResult<'a>, catchHandler : exn -> AsyncResult<'a>) : AsyncResult<'a> = 
+            member __.TryWith(asyncResult : AsyncResult<'a, 'b>, catchHandler : exn -> AsyncResult<'a, 'b>) : AsyncResult<'a, 'b> = 
                 async.TryWith(asyncResult |> Async.ofAsyncResult, (catchHandler >> Async.ofAsyncResult)) |> AR
-            member __.TryFinally(asyncResult : AsyncResult<'a>, compensation : unit -> unit) : AsyncResult<'a> = 
+            member __.TryFinally(asyncResult : AsyncResult<'a, 'b>, compensation : unit -> unit) : AsyncResult<'a, 'b> = 
                 async.TryFinally(asyncResult |> Async.ofAsyncResult, compensation) |> AR
-            member __.Using(resource : 'T when 'T :> System.IDisposable, binder : 'T -> AsyncResult<'a>) : AsyncResult<'a> = 
+            member __.Using(resource : 'T when 'T :> System.IDisposable, binder : 'T -> AsyncResult<'a, 'b>) : AsyncResult<'a, 'b> = 
                 async.Using(resource, (binder >> Async.ofAsyncResult)) |> AR
         
         // Wraps async computations in an error handling computation expression.
-        let asyncTrial = AsyncTrialBuilder()      
+        let asyncTrial = AsyncTrialBuilder()

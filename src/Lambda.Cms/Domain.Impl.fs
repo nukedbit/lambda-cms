@@ -1,6 +1,5 @@
-open Lambda.Cms
-
 namespace Lambda.Cms
+
 open System
 open Chessie
 
@@ -45,7 +44,7 @@ module ChangeSet =
     let createNewChangeSet = _createNewChangeSet (Ioc.resolve<StorageCurrentChangeSet>())  
     
     
-    let draftToPublishedChangeSetContent publishToChangeset (content:DraftChangeSetContent) =
+    let private draftToPublishedChangeSetContent publishToChangeset (content:DraftChangeSetContent) =
         let mapCategory (c: Category) = 
             match c with 
             | Category.Published p -> 
@@ -97,7 +96,7 @@ module ChangeSet =
             Categories  = content.Categories |> List.map(Category.Draft) |> List.map mapCategory
         }
         
-    let draftToPublishedChangeSet (changeSet:DraftChangeSet) =
+    let private draftToPublishedChangeSet (changeSet:DraftChangeSet) =
         {
             Id = changeSet.Id
             Parent = changeSet.Parent
@@ -113,12 +112,69 @@ module ChangeSet =
         asyncTrial {
             let! content = (storageGetContent changeSet)  
             let publishedChangeSet = draftToPublishedChangeSet changeSet
-            return content 
+            return content
                 |> draftToPublishedChangeSetContent publishedChangeSet
                 |> storagePublish publishedChangeSet
-        }  
+        }
         
     let publish = 
         _publish 
             (Ioc.resolve<StorageGetDraftChangeSetContent>())
             (Ioc.resolve<StoragePublishChangeSetContent>())
+            
+            
+module Document = 
+   let _create (store: StorageStoreDraftDocument) (changeSet: DraftChangeSet) owner =
+        {
+            Id = DocumentId (Guid.NewGuid())
+            Title  = Title "New Document"
+            Content = ""
+            Category = Option.None
+            ChangeSet = changeSet
+            Owner = owner
+            Files = []
+            ExtraAttributes = Map.empty
+        }
+        |> store           
+        
+   let create = _create (Ioc.resolve<StorageStoreDraftDocument>())
+   
+ 
+   let _getDraft
+        (getChangeSet : StorageCurrentDraftChangeSet)
+        (get: StorageGetDocumentCurrentDraft) 
+        id 
+        =
+        asyncTrial {
+            let! changeSet = getChangeSet()
+            return! get changeSet id
+        }
+        
+        
+   let getDraft = 
+        _getDraft 
+            (Ioc.resolve<StorageCurrentDraftChangeSet>())
+            (Ioc.resolve<StorageGetDocumentCurrentDraft>())
+            
+   
+   let _createDraft          
+        (store: StorageStoreDraftDocument) 
+        (changeSet: DraftChangeSet) 
+        (document : PublishedDocument)
+        =
+        asyncTrial {
+            let draft = {
+                Id = document.Id
+                Title = document.Title
+                Content = document.Content
+                Owner = document.Owner   
+                Category = Some (Category.Published document.Category)
+                ChangeSet = changeSet 
+                Files = document.Files |> List.map(File.Published)
+                ExtraAttributes = document.ExtraAttributes    
+            }
+            
+            return! store draft                 
+        }
+    
+   let createDraft = _createDraft (Ioc.resolve<StorageStoreDraftDocument>())  

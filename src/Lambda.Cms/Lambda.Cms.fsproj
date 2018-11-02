@@ -6,13 +6,11 @@
   </PropertyGroup>
   <ItemGroup>
 
-    <Compile Include="Ioc.fs" />
+      <Compile Include="Chessie.fs"/>
+
+      <Compile Include="Ioc.fs" />
 
     <Compile Include="Core.fs" />
-
-    <Compile Include="RResult.fs" />
-
-    <Compile Include="Chessie.fs" />
 
     <Compile Include="Domain.Common.fs" />
     <Compile Include="Domain.fs" />
