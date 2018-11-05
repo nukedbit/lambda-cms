@@ -2,31 +2,34 @@ namespace Lambda.Cms
 
 open System
 open Chessie
+open Core
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module DraftChangeSet = 
-    let create (published:PublishedChangeSet) =
+    let create (idGenerator:IdGenerator) (getUtcDate: GetUtcDate) (published:PublishedChangeSet) =
         {
-            Id = ChangeSetId (Guid.NewGuid())
+            Id = ChangeSetId (idGenerator())
             Parent = Some published.Id
-            CreatedOn = DateTime.UtcNow
+            CreatedOn = getUtcDate()
         }
         
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]        
 module PublishedChangeSet = 
-    let create (published:DraftChangeSet) =
+    let create (idGenerator:IdGenerator) (getUtcDate: GetUtcDate) (toPublish:DraftChangeSet) =
         {
-            Id = ChangeSetId (Guid.NewGuid())
-            Parent = Some published.Id
-            CreatedOn = published.CreatedOn
-            PublishedOn = DateTime.UtcNow
+            Id = ChangeSetId (idGenerator())
+            Parent = Some toPublish.Id
+            CreatedOn = toPublish.CreatedOn
+            PublishedOn = getUtcDate()
         }  
         
          
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ChangeSet =      
-    open Chessie
+
     let internal _createNewChangeSet 
+        (idGenerator:IdGenerator) 
+        (getUtcDate : GetUtcDate)
         (getCurrentChangeSet : StorageCurrentChangeSet)      
         (storeChangeSet : StoreChangeSet)   
         =
@@ -37,13 +40,15 @@ module ChangeSet =
                 return ChangeSet.Draft draft
             | ChangeSet.Published p ->
                 return! asyncTrial {
-                    let set = ChangeSet.Draft (DraftChangeSet.create p)
+                    let set = ChangeSet.Draft (DraftChangeSet.create idGenerator getUtcDate p)
                     return! storeChangeSet set
                 }
         } 
     
     let createNewChangeSet = 
         _createNewChangeSet 
+            (fun () -> Guid.NewGuid()) // TODO: review
+            (fun () -> DateTime.UtcNow)// TODO: review
             (Ioc.resolve<StorageCurrentChangeSet>())  
             (Ioc.resolve<StoreChangeSet>())  
     

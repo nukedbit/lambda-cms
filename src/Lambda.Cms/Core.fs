@@ -1,5 +1,10 @@
 namespace Lambda.Cms 
 
+module Core = 
+    open System
+    type GetUtcDate = unit -> DateTime
+    type IdGenerator = unit -> Guid
+
 //module Core =
 //    open Microsoft.Azure
 //    open Microsoft.WindowsAzure.Storage
