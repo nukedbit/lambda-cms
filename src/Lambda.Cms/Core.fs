@@ -4,6 +4,8 @@ module Core =
     open System
     type GetUtcDate = unit -> DateTime
     type IdGenerator = unit -> Guid
+    
+    let getUtcDate = fun () -> DateTime.UtcNow
 
 //module Core =
 //    open Microsoft.Azure

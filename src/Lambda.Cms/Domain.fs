@@ -110,8 +110,8 @@ type Document =
     
 type DraftChangeSetContent = {
         Documents : DraftDocument list
-        Categories: DraftCategory list
-        Files: DraftFile list
+        Categories: Category list
+        Files: File list
     }   
 
 type PublishedChangeSetContent = {

@@ -249,12 +249,16 @@ module public rec Chessie =
             let map f x = x |> bind (f >> singleton)
     
             /// Creates an async computation from an asyncTrial computation
-            let ofAsyncResult (AR x) = x
+            let ofAsyncResult (AR x) = x                                      
             
+            /// Create an AsyncResult<'a,'b> from a Result<'a, 'b>
             let inline toAsyncResult (r) = 
                 let e = Async.singleton (r)
                 (AsyncResult.AR e)
-    
+                
+            /// Create an AsyncResult<'a, 'b> from a value    
+            let fromValue<'a, 'b> (x:'a) = 
+                toAsyncResult (Chessie.Result<'a,'b>.Ok(x, []))
     /// Basic support for async error handling computation
     [<AutoOpen>]
     module AsyncTrial = 

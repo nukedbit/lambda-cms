@@ -64,3 +64,91 @@ module Tests =
          
         result |> should equal (Chessie.Result<ChangeSet,RBad>.Ok(ChangeSet.Draft expected, []))
                  
+
+    [<Fact>]
+    let ``Publish ChangeSet`` () =
+        // SETUP
+        let cid = Guid.NewGuid()
+        let categoryId  =  Guid.NewGuid()
+        let changeSet = {
+            DraftChangeSet.Id = ChangeSetId cid
+            Parent = Option.None
+            CreatedOn = DateTime(1900,1,1)
+        }
+        let getCurrentUtcNow = fun() -> new DateTime(1900,10,10)
+        let draftToPublishedChangeSet  = ChangeSet._draftToPublishedChangeSet getCurrentUtcNow
+        let draftToPublishedChangeSetContent  = ChangeSet._draftToPublishedChangeSetContent getCurrentUtcNow
+        let mutable storagePublishChangeSetCalled = false
+        let storagePublishChangeSet = 
+            fun (cs : PublishedChangeSet) 
+                ( cc : PublishedChangeSetContent) 
+                -> 
+                storagePublishChangeSetCalled <- true  
+                Async.fromValue cc
+        let getChangeSetContent =
+            fun (c: DraftChangeSet) ->
+                Async.fromValue<DraftChangeSetContent,RBad>
+                        {
+                            DraftChangeSetContent.Files = []
+                            Documents = []
+                            Categories = [
+                                Category.Draft {
+                                    Id = CategoryId categoryId
+                                    Title = Title "Test"
+                                    Description  = ""
+                                    Slug = Slug "slug"
+                                    ParentId = None
+                                    ChangeSet = changeSet
+                                }
+                            ]
+                        }
+             
+        let expectedPublishedChangeSet = {
+            Id = ChangeSetId cid
+            Parent = Option.None
+            CreatedOn = DateTime(1900,1,1)
+            PublishedOn = getCurrentUtcNow()
+        }           
+        let expectedContent = 
+            {
+                PublishedChangeSetContent.Files = []
+                Documents = [] 
+                Categories = [
+                                {
+                                    Id = CategoryId categoryId
+                                    Title = Title "Test"
+                                    Description  = ""
+                                    Slug = Slug "slug"
+                                    ParentId = None
+                                    ChangeSet = expectedPublishedChangeSet
+                                    PublishedOn = getCurrentUtcNow()
+                                }
+                            ]
+            }
+        
+        // ACT
+        let publishFunc = 
+            ChangeSet._publish 
+                getChangeSetContent 
+                storagePublishChangeSet 
+                draftToPublishedChangeSet 
+                draftToPublishedChangeSetContent 
+                
+        let result = 
+            publishFunc changeSet
+            |> Async.ofAsyncResult
+            |> Async.RunSynchronously
+            
+        let expected = Result<PublishedChangeSetContent, RBad>.Ok(expectedContent)
+        // ASSERT
+        match result with 
+        | Ok (r, _) ->
+            r |> should equal expectedContent
+        | Bad r ->
+            failwithf "Failed result %s" ( String.Join(" ", r.ToString()))
+             
+        //result |> should equal (expected)
+        storagePublishChangeSetCalled |> should equal true
+        
+        
+        ()

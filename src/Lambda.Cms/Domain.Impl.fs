@@ -53,7 +53,7 @@ module ChangeSet =
             (Ioc.resolve<StoreChangeSet>())  
     
     
-    let private draftToPublishedChangeSetContent publishToChangeset (content:DraftChangeSetContent) =
+    let internal _draftToPublishedChangeSetContent (getUtcDate : GetUtcDate) publishToChangeset (content:DraftChangeSetContent) =
         let mapCategory (c: Category) = 
             match c with 
             | Category.Published p -> 
@@ -65,7 +65,7 @@ module ChangeSet =
                     Description = draft.Description
                     Slug  = draft.Slug
                     ParentId   = draft.ParentId
-                    PublishedOn = DateTime.UtcNow
+                    PublishedOn = getUtcDate()
                     ChangeSet = publishToChangeset 
                 } 
          
@@ -80,7 +80,7 @@ module ChangeSet =
                                 Slug = f.Slug
                                 MimeType = f.MimeType
                                 ChangeSet = publishToChangeset
-                                PublishedOn = DateTime.UtcNow
+                                PublishedOn = getUtcDate()
                             }
                         |  File.Published p -> p
                         )
@@ -96,32 +96,37 @@ module ChangeSet =
                         Owner = d.Owner
                         Files = d.Files |> mapFiles
                         ExtraAttributes = d.ExtraAttributes
-                        PublishedOn = DateTime.UtcNow
+                        PublishedOn = getUtcDate()
                     })
                     
         {
-            Files = content.Files |> List.map(File.Draft) |>  mapFiles
+            Files = content.Files |>  mapFiles
             Documents = content.Documents |> mapDocuments
-            Categories  = content.Categories |> List.map(Category.Draft) |> List.map mapCategory
+            Categories  = content.Categories |> List.map mapCategory
         }
         
-    let private draftToPublishedChangeSet (changeSet:DraftChangeSet) =
+    let draftToPublishedChangeSetContent  = _draftToPublishedChangeSetContent Core.getUtcDate
+        
+    let internal _draftToPublishedChangeSet (utcGet: GetUtcDate) (changeSet:DraftChangeSet) =
         {
             Id = changeSet.Id
             Parent = changeSet.Parent
             CreatedOn = changeSet.CreatedOn
-            PublishedOn = DateTime.UtcNow
+            PublishedOn = utcGet()
         }
+    let private draftToPublishedChangeSet = _draftToPublishedChangeSet getUtcDate
                 
-    let _publish 
+    let internal _publish 
         (storageGetContent : StorageGetDraftChangeSetContent)
         (storagePublish : StoragePublishChangeSetContent)
+        (draftToPublishedChangeSet: DraftChangeSet -> PublishedChangeSet)
+        (draftToPublishedChangeSetContent: PublishedChangeSet -> DraftChangeSetContent -> PublishedChangeSetContent)
         (changeSet:DraftChangeSet)  
         =
         asyncTrial {
             let! content = (storageGetContent changeSet)  
             let publishedChangeSet = draftToPublishedChangeSet changeSet
-            return content
+            return! content
                 |> draftToPublishedChangeSetContent publishedChangeSet
                 |> storagePublish publishedChangeSet
         }
@@ -130,6 +135,9 @@ module ChangeSet =
         _publish 
             (Ioc.resolve<StorageGetDraftChangeSetContent>())
             (Ioc.resolve<StoragePublishChangeSetContent>())
+            draftToPublishedChangeSet
+            draftToPublishedChangeSetContent
+            
             
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]            
 module Document = 
