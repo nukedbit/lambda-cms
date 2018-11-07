@@ -31,79 +31,83 @@ module CommandManager =
         | NewDocumentCommand 
         
         
-    let internal _createNewDraftCommand
-        (currentDraftChangeSet: StorageCurrentDraftChangeSet)
+    let private failUpdateDocument = 
+        fail<DraftDocument,RBad> (RBad.Message "Can't update document on a published changeset") 
+                    |> Async.toAsyncResult        
+        
+    let createNewDraftCommand
+        (getCurrentChangeSet: StorageCurrentChangeSet)
         (storeDraftExists : StorageCheckDraftDocumentExists) 
         (getPublished: StorageGetPublishedDocument)
         (cmd: NewDraft)
         =
         asyncTrial{
-            let! changeset = currentDraftChangeSet()
-            let! exists = storeDraftExists changeset cmd.DocumentId
-            if (exists) then
-                return! Async.toAsyncResult ( fail (RBad.Message "draft already exists"))
-            else
-                let! published = getPublished cmd.DocumentId
-                return! Document.createDraft changeset published
-        }
-        
-    
-    let createNewDraftCommand =
-        _createNewDraftCommand 
-            (Ioc.resolve<StorageCurrentDraftChangeSet>())
-            (Ioc.resolve<StorageCheckDraftDocumentExists>())
-            (Ioc.resolve<StorageGetPublishedDocument>())
+            let! cs = getCurrentChangeSet()
+            match cs with 
+            | Draft changeSet ->  
+                let! exists = storeDraftExists changeSet cmd.DocumentId
+                if (exists) then
+                    return! Async.toAsyncResult (fail (RBad.Message "draft already exists"))
+                else
+                    let! published = getPublished cmd.DocumentId
+                    return Document.createDraft changeSet.Id published
+            | Published _ ->
+                return! 
+                    failUpdateDocument                      
+        }            
             
-            
-            
-    let _updateTitleCommand  
+    let updateTitleCommand  
+        (getCurrentChangeSet: StorageCurrentChangeSet)
         (storeDraft : StorageStoreDraftDocument)
-        (getDraft : DocumentId -> AsyncResult<DraftDocument, RBad>)
+        (getDraft: StorageGetDocumentCurrentDraft)
         (update:UpdateTitle)
         =
         asyncTrial {
-            let! draft = getDraft update.DocumentId                             
-            return! storeDraft {draft with Title = update.Title}            
-        }             
-       
-    let updateTitleCommand =
-        _updateTitleCommand 
-            (Ioc.resolve<StorageStoreDraftDocument>())
-            Document.getDraft
+            let! cs = getCurrentChangeSet()
+            match cs with 
+            | Draft changeSet ->            
+                let! draft = getDraft changeSet update.DocumentId                             
+                return! storeDraft {draft with Title = update.Title}       
+            | Published _ ->
+                return! 
+                    failUpdateDocument                      
+        }
             
             
-    let _updateContentCommand 
-        (getDraft : DocumentId -> AsyncResult<DraftDocument, RBad>)
+    let updateContentCommand 
+        (getCurrentChangeSet: StorageCurrentChangeSet)
+        (getDraft: StorageGetDocumentCurrentDraft)   
         (storeDraft : StorageStoreDraftDocument)
         (e:UpdateContent)
         =
         asyncTrial {
-            let! draft = getDraft e.DocumentId            
-            return! storeDraft {draft with Content = e.Content}           
+            let! cs = getCurrentChangeSet()
+            match cs with 
+            | Draft changeSet ->         
+                let! draft = getDraft changeSet e.DocumentId            
+                return! storeDraft {draft with Content = e.Content}   
+            | Published _ ->
+                return! 
+                    failUpdateDocument                        
         } 
-        
-
-    let updateContentCommand = 
-        _updateContentCommand
-            Document.getDraft
-            (Ioc.resolve<StorageStoreDraftDocument>())
             
             
-    let _updateCategoryCommand 
-        (getDraft : DocumentId -> AsyncResult<DraftDocument, RBad>)
+    let updateCategoryCommand
+        (getCurrentChangeSet: StorageCurrentChangeSet)
+        (getDraft: StorageGetDocumentCurrentDraft)         
         (storeDraft : StorageStoreDraftDocument)
         (getCategory: StorageGetCategory)
         (e:UpdateCategory)
         =
         asyncTrial {
-            let! draft = getDraft e.DocumentId
-            let! category = getCategory e.Category (ChangeSet.Draft draft.ChangeSet)            
-            return! storeDraft {draft with Category = (Some category)}           
-        }                                             
-        
-    let updateCategoryCommand = 
-        _updateCategoryCommand
-            Document.getDraft
-            (Ioc.resolve<StorageStoreDraftDocument>())    
-            (Ioc.resolve<StorageGetCategory>())    
+            let! cs = getCurrentChangeSet()
+            match cs with 
+            | Draft changeSet -> 
+                let! document = getDraft changeSet e.DocumentId
+                let! category = getCategory e.Category (ChangeSet.Draft changeSet)            
+                return! storeDraft {document with Category = (Some category)}           
+            | Published _ ->
+                return! 
+                    failUpdateDocument
+        }  
     

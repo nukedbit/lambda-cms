@@ -9,58 +9,51 @@ module Tests =
     
     
     [<Fact>]
-    let ``Create New ChangeSet when already has one in draft return it`` () =
+    let ``Create New ChangeSet when already current is draft return it`` () =
         let cid = Guid.NewGuid()
-        let getCurrentUtcNow = fun() -> new DateTime(1900,1,1)
+        let getCurrentUtcNow = DateTime(1900,1,1)
         let idGenerator = fun () -> cid
         let changeSet = {
-                DraftChangeSet.Id = ChangeSetId cid
-                Parent = Option.None
-                CreatedOn = DateTime(1900,1,1)
+                Id = ChangeSetDraftId cid
+                Parent = ChangeSetParentId.Root
+                CreatedOn = getCurrentUtcNow
+                Files = []
+                Documents = []
+                Categories = []
             }
-        let currentChangeSetStoreMock = 
-             (fun () -> 
-                let c = ChangeSet.Draft changeSet
-                let r = Chessie.Result<ChangeSet,RBad>.Ok(c, [])
-                Async.toAsyncResult(r)   
-             )
-        let storeMock = fun (cset) -> Chessie.Result<ChangeSet,RBad>.Succeed(cset) |> Async.toAsyncResult
                     
         let result = 
-            ChangeSet._createNewChangeSet idGenerator getCurrentUtcNow currentChangeSetStoreMock storeMock 
-            |> Async.ofAsyncResult
-            |> Async.RunSynchronously
+            ChangeSet.createNewChangeSet idGenerator getCurrentUtcNow (ChangeSet.Draft changeSet)            
             
         result |> should equal (Chessie.Result<ChangeSet,RBad>.Ok(ChangeSet.Draft changeSet, []))
         
     [<Fact>]
-    let ``Create New ChangeSet when current is marked as published`` () =
+    let ``Create New ChangeSet when current is published`` () =
         let cid = Guid.NewGuid()
-        let getCurrentUtcNow = fun() -> new DateTime(1900,10,10)
+        let getCurrentUtcNow = new DateTime(1900,10,10)
         let idGenerator = fun () -> Guid.Parse("743c3d2c-2e55-4cde-8dce-3997980aad77")
         let changeSet = {
-                PublishedChangeSet.Id = ChangeSetId cid
-                Parent = Option.None
+                Id = ChangeSetPublishedId cid
+                Parent = ChangeSetParentId.Root
                 CreatedOn = DateTime(1900,1,1)
                 PublishedOn = DateTime(1900,1,1)
+                Files = []
+                Documents = []
+                Categories = []
             }
+            
         let expected = {
-                DraftChangeSet.Id = ChangeSetId (idGenerator())
-                Parent = Some changeSet.Id
+                Id = ChangeSetDraftId (idGenerator())
+                Parent = ChangeSetParentId.PublishedId changeSet.Id
                 CreatedOn = DateTime(1900,10,10)
-            }            
-        let currentChangeSetStoreMock = 
-             (fun () -> 
-                let c = ChangeSet.Published changeSet
-                let r = Chessie.Result<ChangeSet,RBad>.Ok(c, [])
-                Async.toAsyncResult(r)   
-             )
-        let storeMock = fun (cset) -> Chessie.Result<ChangeSet,RBad>.Succeed(cset) |> Async.toAsyncResult
-                    
+                Files = []
+                Documents = []
+                Categories = []
+            }
+             
         let result = 
-            ChangeSet._createNewChangeSet idGenerator getCurrentUtcNow currentChangeSetStoreMock storeMock 
-            |> Async.ofAsyncResult
-            |> Async.RunSynchronously
+            ChangeSet.createNewChangeSet idGenerator getCurrentUtcNow (ChangeSet.Published changeSet)
+
          
         result |> should equal (Chessie.Result<ChangeSet,RBad>.Ok(ChangeSet.Draft expected, []))
                  
@@ -69,86 +62,60 @@ module Tests =
     let ``Publish ChangeSet`` () =
         // SETUP
         let cid = Guid.NewGuid()
+        let idGenerator = fun () -> cid
         let categoryId  =  Guid.NewGuid()
         let changeSet = {
-            DraftChangeSet.Id = ChangeSetId cid
-            Parent = Option.None
+            DraftChangeSet.Id = ChangeSetDraftId cid
+            Parent = ChangeSetParentId.Root
             CreatedOn = DateTime(1900,1,1)
+            Files = []
+            Documents = []
+            Categories = [
+                Category.Draft {
+                    Id = CategoryId categoryId
+                    Title = Title "Test"
+                    Description  = ""
+                    Slug = Slug "slug"
+                    ParentId = None
+                }
+            ]            
         }
-        let getCurrentUtcNow = fun() -> new DateTime(1900,10,10)
-        let draftToPublishedChangeSet  = ChangeSet._draftToPublishedChangeSet getCurrentUtcNow
-        let draftToPublishedChangeSetContent  = ChangeSet._draftToPublishedChangeSetContent getCurrentUtcNow
-        let mutable storagePublishChangeSetCalled = false
-        let storagePublishChangeSet = 
-            fun (cs : PublishedChangeSet) 
-                ( cc : PublishedChangeSetContent) 
-                -> 
-                storagePublishChangeSetCalled <- true  
-                Async.fromValue cc
-        let getChangeSetContent =
-            fun (c: DraftChangeSet) ->
-                Async.fromValue<DraftChangeSetContent,RBad>
-                        {
-                            DraftChangeSetContent.Files = []
-                            Documents = []
-                            Categories = [
-                                Category.Draft {
-                                    Id = CategoryId categoryId
-                                    Title = Title "Test"
-                                    Description  = ""
-                                    Slug = Slug "slug"
-                                    ParentId = None
-                                    ChangeSet = changeSet
-                                }
-                            ]
-                        }
+        let utcNow = new DateTime(1900,10,10)
              
         let expectedPublishedChangeSet = {
-            Id = ChangeSetId cid
-            Parent = Option.None
+            Id = ChangeSetPublishedId cid
+            Parent = ChangeSetParentId.Root
             CreatedOn = DateTime(1900,1,1)
-            PublishedOn = getCurrentUtcNow()
-        }           
-        let expectedContent = 
-            {
-                PublishedChangeSetContent.Files = []
-                Documents = [] 
-                Categories = [
-                                {
-                                    Id = CategoryId categoryId
-                                    Title = Title "Test"
-                                    Description  = ""
-                                    Slug = Slug "slug"
-                                    ParentId = None
-                                    ChangeSet = expectedPublishedChangeSet
-                                    PublishedOn = getCurrentUtcNow()
-                                }
-                            ]
+            PublishedOn = utcNow
+            Files = []
+            Documents = [] 
+            Categories = [
+                    {
+                        Id = CategoryId categoryId
+                        Title = Title "Test"
+                        Description  = ""
+                        Slug = Slug "slug"
+                        ParentId = None
+                        PublishedOn = utcNow
+                    }
+                ]
             }
         
         // ACT
         let publishFunc = 
-            ChangeSet._publish 
-                getChangeSetContent 
-                storagePublishChangeSet 
-                draftToPublishedChangeSet 
-                draftToPublishedChangeSetContent 
+            ChangeSet.publish 
+                idGenerator 
+                utcNow
                 
         let result = 
-            publishFunc changeSet
-            |> Async.ofAsyncResult
-            |> Async.RunSynchronously
+            publishFunc (ChangeSet.Draft changeSet)
             
-        let expected = Result<PublishedChangeSetContent, RBad>.Ok(expectedContent)
         // ASSERT
         match result with 
         | Ok (r, _) ->
-            r |> should equal expectedContent
+            r |> should equal expectedPublishedChangeSet
         | Bad r ->
             failwithf "Failed result %s" ( String.Join(" ", r.ToString()))
-             
-        //result |> should equal (expected)
-        storagePublishChangeSetCalled |> should equal true
         
         
         ()

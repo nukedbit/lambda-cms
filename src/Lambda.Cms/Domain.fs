@@ -2,33 +2,30 @@
 
 open System
 
-type ChangeSetId = ChangeSetId of Guid
+type ChangeSetDraftId = ChangeSetDraftId of Guid
+    
+type ChangeSetPublishedId = ChangeSetPublishedId of Guid
 
+type ChangeSetId = 
+    | Draft of ChangeSetDraftId
+    | Published of ChangeSetPublishedId               
 
-type DraftChangeSet = {
-    Id : ChangeSetId
-    Parent: ChangeSetId option
-    CreatedOn: DateTime
-}
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module ChangeSetDraftId  =
+    let toPublishedId (ChangeSetDraftId id) =
+        ChangeSetPublishedId id
+        
 
-type PublishedChangeSet = {
-    Id : ChangeSetId
-    Parent: ChangeSetId option
-    CreatedOn: DateTime
-    PublishedOn: DateTime
-}
-
-type ChangeSet = 
-    | Draft of DraftChangeSet
-    | Published of PublishedChangeSet
+type ChangeSetParentId = 
+    | Root
+    | PublishedId of ChangeSetPublishedId
 
 type DraftFile = 
     {
         Id : FileId
         MimeType : string
         Name : string
-        Slug : Slug
-        ChangeSet: DraftChangeSet        
+        Slug : Slug      
     }
     
 type PublishedFile = 
@@ -37,7 +34,6 @@ type PublishedFile =
         MimeType : string
         Name : string
         Slug : Slug
-        ChangeSet: PublishedChangeSet
         PublishedOn: DateTime        
     } 
     
@@ -59,7 +55,6 @@ type DraftCategory =
         Description: string
         Slug : Slug
         ParentId : CategoryId option
-        ChangeSet: DraftChangeSet
     }
     
 type PublishedCategory = 
@@ -70,7 +65,6 @@ type PublishedCategory =
         Slug : Slug
         ParentId : CategoryId option
         PublishedOn: DateTime
-        ChangeSet: PublishedChangeSet
     }
     
 type Category = 
@@ -84,7 +78,6 @@ type PublishedDocument =
         Title : Title
         Content : string
         Category : PublishedCategory
-        ChangeSet : PublishedChangeSet
         Owner : UserId
         Files : PublishedFile list
         ExtraAttributes : Map<string,obj>
@@ -97,7 +90,6 @@ type DraftDocument =
         Title : Title
         Content : string
         Category : Category option
-        ChangeSet : DraftChangeSet
         Owner : UserId
         Files : File list
         ExtraAttributes : Map<string,obj>
@@ -108,21 +100,27 @@ type Document =
     | Published of PublishedDocument
     
     
-type DraftChangeSetContent = {
-        Documents : DraftDocument list
-        Categories: Category list
-        Files: File list
-    }   
+    
+type DraftChangeSet = {
+    Id : ChangeSetDraftId
+    Parent: ChangeSetParentId
+    CreatedOn: DateTime
+    Documents : DraftDocument list
+    Categories: Category list
+    Files: File list    
+}
 
-type PublishedChangeSetContent = {
-        Documents : PublishedDocument list
-        Categories: PublishedCategory list
-        Files: PublishedFile list        
-    }   
-     
-type ChangeSetContent =
-    | Draft of DraftChangeSetContent    
-    | Published of PublishedChangeSetContent
+type PublishedChangeSet = {
+    Id : ChangeSetPublishedId
+    Parent: ChangeSetParentId
+    CreatedOn: DateTime
+    PublishedOn: DateTime
+    Documents : PublishedDocument list
+    Categories: PublishedCategory list
+    Files: PublishedFile list       
+}    
         
-
+type ChangeSet = 
+    | Draft of DraftChangeSet
+    | Published of PublishedChangeSet
 

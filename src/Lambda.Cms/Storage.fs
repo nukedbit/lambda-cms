@@ -8,9 +8,11 @@ type StorageLastPublishedChangeSet = unit -> AsyncResult<PublishedChangeSet, RBa
 
 type StoreChangeSet = ChangeSet -> AsyncResult<ChangeSet, RBad>
 
-type StorageGetDraftChangeSetContent = DraftChangeSet -> AsyncResult<DraftChangeSetContent, RBad>
+//type StorageGetDraftChangeSetContent = DraftChangeSet -> AsyncResult<DraftChangeSetContent, RBad>
+    
+type StorageGetChangeSet = ChangeSetId -> AsyncResult<ChangeSet, RBad>
 
-type StoragePublishChangeSetContent = PublishedChangeSet -> PublishedChangeSetContent -> AsyncResult<PublishedChangeSetContent, RBad>
+type StoragePublishChangeSetContent = PublishedChangeSet -> AsyncResult<PublishedChangeSet, RBad>
 
 type StorageStoreDraftDocument = DraftDocument -> AsyncResult<DraftDocument, RBad>
 
