@@ -36,11 +36,15 @@ module Title =
             Result.Error (sprintf "Length should be less than %d." maxLength)
         else
             Result<Title,string>.Ok (Title s)
+            
+    let toString (Title t) = 
+        t
 
 type Slug = Slug of string
 
 module Slug = 
     
+    let value (Slug s ) = s
 
     let private remapInternationalCharToAscii (c:Char) =
         let s = c.ToString().ToLowerInvariant()
@@ -69,35 +73,46 @@ module Slug =
                  | true -> Some v
                  | _ -> None
                 )
-    let fromTitle s =
+                            
+    let fromString s =
+        let isLowerCaseLetter c = c >= 'a' && c <= 'z'
+        let isDigit c = (c >= '0' && c <= '9')
+        let isInvalidSeparator c =
+            c = ' ' || c = ',' || c = '.' || c = '/' 
+                ||c = '\\' || c = '-' || c = '_' || c = '='
+        let isNotAscii c = (int)c >= 128
+        
         if String.IsNullOrEmpty(s) then
-                Result.Error "Title can't be null or empty"
+                Chessie.Result<Slug,string>.Bad ["Title can't be null or empty"]
             else
                 let sb = new StringBuilder()
                 let mutable prevdash = false;
                 let mutable pos = 0
                 while pos <= 80 && pos < s.Length do
                     let c = s.[pos]
-                    if (c >= 'a' && c <= 'z' || (c >= '0' && c <= '9')) then
+                    if (isLowerCaseLetter c || isDigit c) then
                         sb.Append(c) |> ignore
                         prevdash <- false;
                     else if(c >= 'A' && c <= 'Z') then
                         sb.Append(Char.ToLower(c)) |> ignore
                         prevdash <- false;
-                    else if (c = ' ' || c = ',' || c = '.' || c = '/' ||
-                                 c = '\\' || c = '-' || c = '_' || c = '=') then
+                    else if (isInvalidSeparator c) then
                         if (not(prevdash) && sb.Length > 0) then
                             sb.Append('-') |> ignore
                             prevdash <- true
-                    else if ((int)c >= 128) then
-                        let prevlen = sb.Length
-                        sb.Append(remapInternationalCharToAscii(c)) |> ignore
-                        if (prevlen <> sb.Length) then prevdash <- false
+                    else if (isNotAscii c) then
+                        match remapInternationalCharToAscii(c) with 
+                        | Some s ->
+                            let prevlen = sb.Length
+                            sb.Append(s) |> ignore
+                            if (prevlen <> sb.Length) then prevdash <- false
+                        | _ -> ()
                     pos <- pos + 1
                 if (prevdash) then 
-                   Result<Slug,string>.Ok (Slug(sb.ToString().Substring(0, sb.Length - 1)))
+                   Chessie.Result<Slug,string>.Ok (Slug(sb.ToString().Substring(0, sb.Length - 1)) , [])
                 else 
-                    Result<Slug,string>.Ok (Slug(sb.ToString()))
-    let fromSlug s = 
-        fromTitle s
+                   Chessie.Result<Slug,string>.Ok (Slug(sb.ToString()) , [])
+                    
+    let fromTitle t =
+        fromString (Title.toString t) 
 

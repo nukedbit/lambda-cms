@@ -47,6 +47,7 @@ module DomaingMapping =
                     Files = d.Files |> mapFiles utcNow
                     ExtraAttributes = d.ExtraAttributes
                     PublishedOn = getUtcDate()
+                    Slug = d.Slug
                 })
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -111,14 +112,19 @@ module ChangeSet =
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]            
 module Document = 
    let create (changeSet: DraftChangeSet) owner =
+        let title = Title "New Document"
+        let slug = 
+            match (Slug.fromTitle title) with
+            | Chessie.Result.Ok (s, _) -> s
         {
             Id = DocumentId (Guid.NewGuid())
-            Title  = Title "New Document"
+            Title  = title
             Content = ""
             Category = Option.None
             Owner = owner
             Files = []
             ExtraAttributes = Map.empty
+            Slug = slug
         }
    
  
@@ -126,9 +132,10 @@ module Document =
         (getChangeSet : StorageCurrentDraftChangeSet)
         (get: StorageGetDocumentCurrentDraft) 
         id 
+        userId
         =
         asyncTrial {
-            let! changeSet = getChangeSet()
+            let! changeSet = getChangeSet(userId)
             return! get changeSet id
         }
             
@@ -145,4 +152,5 @@ module Document =
             Category = Some (Category.Published document.Category)
             Files = document.Files |> List.map(File.Published)
             ExtraAttributes = document.ExtraAttributes    
+            Slug = document.Slug
         }

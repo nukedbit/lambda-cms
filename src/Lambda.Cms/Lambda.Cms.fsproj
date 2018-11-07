@@ -21,8 +21,6 @@
     <Compile Include="Domain.Impl.fs" />
     
     <Compile Include="Commands.fs" />
-    <Compile Include="Dto.fs" />
-      <Compile Include="Services.fs" />
       
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

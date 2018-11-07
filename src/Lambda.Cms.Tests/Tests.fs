@@ -118,4 +118,14 @@ module Tests =
             failwithf "Failed result %s" ( String.Join(" ", r.ToString()))
         
         
+    [<Theory>]
+    [<InlineData("F# is the most beautiful Programming Language", "f-is-the-most-beautiful-programming-language")>]
+    [<InlineData("È un buon giorno per morire!", "e-un-buon-giorno-per-morire")>]
+    let ``Slug From String`` (str: string, expected: string) =
+        let slug = (Slug.fromString str)
+        match slug with
+        | Ok (s, _) ->
+            s |> Slug.value |> should equal expected
+        | Bad e ->
+            failwith (e |> List.head)     
         ()

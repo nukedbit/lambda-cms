@@ -7,42 +7,47 @@ module CommandManager =
     type UpdateTitle = {
             DocumentId : DocumentId
             Title : Title
-        }
+            UserId: UserId
+            }
     
     type UpdateContent = {
             DocumentId : DocumentId
             Content : string
-        }
+            UserId: UserId
+            }
         
     type UpdateCategory = {
             DocumentId : DocumentId
-            Category : CategoryId            
-        }
-    
-    type NewDraft = {
+            Category : CategoryId 
+            UserId: UserId
+            }
+            
+    type UpdateSlug = {
             DocumentId : DocumentId
-        }
-
-    type DocumentCommand =
-        | ChangeTitleCommand of UpdateTitle
-        | ChangeContentCommand of UpdateContent
-        | ChangeCategoryCommand of UpdateCategory
-        | CreateNewDraftCommand of NewDraft
-        | NewDocumentCommand 
+            Slug : Slug 
+            UserId: UserId
+            }
+              
+    type CreateNewDraft = {
+            DocumentId : DocumentId
+            UserId: UserId
+            }          
         
         
     let private failUpdateDocument = 
         fail<DraftDocument,RBad> (RBad.Message "Can't update document on a published changeset") 
                     |> Async.toAsyncResult        
         
+        
+    /// Create a new draft from an existing document    
     let createNewDraftCommand
         (getCurrentChangeSet: StorageCurrentChangeSet)
         (storeDraftExists : StorageCheckDraftDocumentExists) 
         (getPublished: StorageGetPublishedDocument)
-        (cmd: NewDraft)
+        (cmd: CreateNewDraft)
         =
         asyncTrial{
-            let! cs = getCurrentChangeSet()
+            let! cs = getCurrentChangeSet(cmd.UserId)
             match cs with 
             | Draft changeSet ->  
                 let! exists = storeDraftExists changeSet cmd.DocumentId
@@ -56,14 +61,16 @@ module CommandManager =
                     failUpdateDocument                      
         }            
             
+    /// Update document title            
     let updateTitleCommand  
         (getCurrentChangeSet: StorageCurrentChangeSet)
         (storeDraft : StorageStoreDraftDocument)
         (getDraft: StorageGetDocumentCurrentDraft)
         (update:UpdateTitle)
+        userId
         =
         asyncTrial {
-            let! cs = getCurrentChangeSet()
+            let! cs = getCurrentChangeSet(userId)
             match cs with 
             | Draft changeSet ->            
                 let! draft = getDraft changeSet update.DocumentId                             
@@ -73,7 +80,7 @@ module CommandManager =
                     failUpdateDocument                      
         }
             
-            
+    /// Update document content        
     let updateContentCommand 
         (getCurrentChangeSet: StorageCurrentChangeSet)
         (getDraft: StorageGetDocumentCurrentDraft)   
@@ -81,7 +88,7 @@ module CommandManager =
         (e:UpdateContent)
         =
         asyncTrial {
-            let! cs = getCurrentChangeSet()
+            let! cs = getCurrentChangeSet(e.UserId)
             match cs with 
             | Draft changeSet ->         
                 let! draft = getDraft changeSet e.DocumentId            
@@ -91,7 +98,7 @@ module CommandManager =
                     failUpdateDocument                        
         } 
             
-            
+    /// Update the document category        
     let updateCategoryCommand
         (getCurrentChangeSet: StorageCurrentChangeSet)
         (getDraft: StorageGetDocumentCurrentDraft)         
@@ -100,7 +107,7 @@ module CommandManager =
         (e:UpdateCategory)
         =
         asyncTrial {
-            let! cs = getCurrentChangeSet()
+            let! cs = getCurrentChangeSet(e.UserId)
             match cs with 
             | Draft changeSet -> 
                 let! document = getDraft changeSet e.DocumentId
@@ -110,4 +117,23 @@ module CommandManager =
                 return! 
                     failUpdateDocument
         }  
+    
+    /// Update the document Slug    
+    let updateSlugCommand
+        (getCurrentChangeSet: StorageCurrentChangeSet)
+        (getDraft: StorageGetDocumentCurrentDraft)         
+        (storeDraft : StorageStoreDraftDocument)
+        (getCategory: StorageGetCategory)
+        (e:UpdateSlug)
+        =
+        asyncTrial {
+            let! cs = getCurrentChangeSet(e.UserId)
+            match cs with 
+            | Draft changeSet -> 
+                let! document = getDraft changeSet e.DocumentId         
+                return! storeDraft {document with Slug = e.Slug}           
+            | Published _ ->
+                return! 
+                    failUpdateDocument
+        }          
     

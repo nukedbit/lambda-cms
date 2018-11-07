@@ -82,6 +82,7 @@ type PublishedDocument =
         Files : PublishedFile list
         ExtraAttributes : Map<string,obj>
         PublishedOn: DateTime
+        Slug: Slug
     }
     
 type DraftDocument = 
@@ -93,6 +94,7 @@ type DraftDocument =
         Owner : UserId
         Files : File list
         ExtraAttributes : Map<string,obj>
+        Slug: Slug
     }    
     
 type Document = 
