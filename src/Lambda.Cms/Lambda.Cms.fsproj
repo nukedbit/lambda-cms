@@ -5,7 +5,6 @@
     <RootNamespace>Lambda.Cms</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-
       <Compile Include="Info.fs"/>
 
       <Compile Include="Chessie.fs"/>
@@ -21,7 +20,13 @@
     <Compile Include="Domain.Impl.fs" />
     
     <Compile Include="Commands.fs" />
-      
+
+      <Compile Include="Commands.Handlers.fs"/>
+
+      <Compile Include="Commands.Composition.fs"/>
+
+      <Compile Include="Commands.Manager.fs"/>
+
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
