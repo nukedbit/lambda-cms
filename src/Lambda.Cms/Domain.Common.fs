@@ -73,7 +73,29 @@ module Slug =
                  | true -> Some v
                  | _ -> None
                 )
-                            
+                
+    let (|LowerCase|Digit|InvalidSeparator|NotAscii|Skip|) (c:char) =
+        let isLowerCaseLetter c = c >= 'a' && c <= 'z'
+        let isDigit c = (c >= '0' && c <= '9')
+        let isInvalidSeparator c =
+            c = ' ' || c = ',' || c = '.' || c = '/' 
+                ||c = '\\' || c = '-' || c = '_' || c = '='
+        let isNotAscii c = (int)c >= 128
+                
+        if isLowerCaseLetter c then
+           LowerCase(c)
+        elif c >= 'A' && c <= 'Z' then
+           LowerCase(Char.ToLower(c)) 
+        elif isDigit c then
+           Digit(c)
+        elif isInvalidSeparator c then
+           InvalidSeparator(c)
+        elif (isNotAscii c) then
+           NotAscii (c)           
+        else
+            Skip
+            
+                
     let fromString s =
         let isLowerCaseLetter c = c >= 'a' && c <= 'z'
         let isDigit c = (c >= '0' && c <= '9')
@@ -82,36 +104,45 @@ module Slug =
                 ||c = '\\' || c = '-' || c = '_' || c = '='
         let isNotAscii c = (int)c >= 128
         
-        if String.IsNullOrEmpty(s) then
-                Chessie.Result<Slug,string>.Bad ["Title can't be null or empty"]
+        let rec eval (sourceStr:string) (prevdash:bool) (slug:string) =
+            if slug.Length > 80 then
+               slug
+            elif sourceStr = "" then
+               if prevdash then
+                   slug.Substring(0, slug.Length - 1)
+               else
+                   slug                
             else
-                let sb = new StringBuilder()
-                let mutable prevdash = false;
-                let mutable pos = 0
-                while pos <= 80 && pos < s.Length do
-                    let c = s.[pos]
-                    if (isLowerCaseLetter c || isDigit c) then
-                        sb.Append(c) |> ignore
-                        prevdash <- false;
-                    else if(c >= 'A' && c <= 'Z') then
-                        sb.Append(Char.ToLower(c)) |> ignore
-                        prevdash <- false;
-                    else if (isInvalidSeparator c) then
-                        if (not(prevdash) && sb.Length > 0) then
-                            sb.Append('-') |> ignore
-                            prevdash <- true
-                    else if (isNotAscii c) then
-                        match remapInternationalCharToAscii(c) with 
-                        | Some s ->
-                            let prevlen = sb.Length
-                            sb.Append(s) |> ignore
-                            if (prevlen <> sb.Length) then prevdash <- false
-                        | _ -> ()
-                    pos <- pos + 1
-                if (prevdash) then 
-                   Chessie.Result<Slug,string>.Ok (Slug(sb.ToString().Substring(0, sb.Length - 1)) , [])
-                else 
-                   Chessie.Result<Slug,string>.Ok (Slug(sb.ToString()) , [])
+                let c = sourceStr.[0]
+                let remaining = sourceStr.Substring(1)
+                match c with
+                | LowerCase chr ->
+                    eval remaining false (slug + chr.ToString())
+                | Digit chr -> 
+                    eval remaining false (slug + chr.ToString())
+                | InvalidSeparator chr ->
+                    if (not(prevdash) && slug.Length > 0) then
+                        eval remaining true (slug + '-'.ToString())
+                    else
+                        eval remaining prevdash slug
+                | NotAscii chr ->
+                    match remapInternationalCharToAscii(c) with 
+                    | Some s ->
+                        let prevlen = slug.Length
+                        let sl = slug + s
+                        let pvd = prevlen = sl.Length
+                        eval remaining pvd sl
+                    | _ ->                 
+                        eval remaining prevdash slug
+                | Skip ->
+                    eval remaining prevdash slug
+                                                                                                     
+        if String.IsNullOrEmpty(s) then
+            Chessie.Result<Slug,string>.Bad ["Title can't be null or empty"]
+        else
+            let result = eval s false ""
+            Chessie.Result<Slug,string>.Ok (Slug(result) , [])
+                 
                     
     let fromTitle t =
         fromString (Title.toString t) 

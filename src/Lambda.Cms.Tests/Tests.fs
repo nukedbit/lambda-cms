@@ -121,6 +121,7 @@ module Tests =
     [<Theory>]
     [<InlineData("F# is the most beautiful Programming Language", "f-is-the-most-beautiful-programming-language")>]
     [<InlineData("È un buon giorno per morire!", "e-un-buon-giorno-per-morire")>]
+    [<InlineData("Good morning ", "good-morning")>]
     let ``Slug From String`` (str: string, expected: string) =
         let slug = (Slug.fromString str)
         match slug with
